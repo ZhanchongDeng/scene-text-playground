@@ -1,6 +1,6 @@
 import cv2
 import argparse
-import numpy as np
+import easyocr
 
 from DetectionModel import DetectionModel, DBOpenCV, DBEasyOCR
 from RecognitionModel import RecognitionModel, CRNNOpenCV, CRNNEasyOCR
@@ -18,22 +18,6 @@ def detect_image(detection_model:DetectionModel, image):
     '''
     vertices = detection_model.detect(image)
     return vertices
-
-def fourPointsTransform(frame, vertices):
-    vertices = np.asarray(vertices)
-    outputSize = (100, 32)
-    targetVertices = np.array([
-        [0, outputSize[1] - 1],
-        [0, 0],
-        [outputSize[0] - 1, 0],
-        [outputSize[0] - 1, outputSize[1] - 1]], dtype="float32")
-
-    # convert vertices and targetVertices to float32
-    vertices = vertices.astype("float32")
-    targetVertices = targetVertices.astype("float32")
-    rotationMatrix = cv2.getPerspectiveTransform(vertices, targetVertices)
-    result = cv2.warpPerspective(frame, rotationMatrix, outputSize)
-    return result
 
 def check_input_size(model_name):
     import onnxruntime as ort
@@ -55,12 +39,16 @@ def recognition_image(recognition_model:RecognitionModel, image, vertices = None
     '''
     rec_text = []
     for box in vertices:
-        cropped = fourPointsTransform(image, box)
+        cropped = CRNNOpenCV.fourPointsTransform(image, box)
         cv2.imshow("cropped", cropped)
         cv2.waitKey(0)
         text = recognition_model.recognize(cropped)
         rec_text.append(text)
     return rec_text
+
+def e2e_easyocr(image_path):
+    reader = easyocr.Reader(['en'], False, "easyocr_models/", detect_network='dbnet18')
+    return reader.readtext(image_path, detail=0)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -69,7 +57,6 @@ if __name__ == "__main__":
     parser.add_argument("image_path", type=str)
     args = parser.parse_args()
 
-    
     # Load image
     image = cv2.imread(args.image_path)
     # cv2.imshow("Original", image)
@@ -83,8 +70,10 @@ if __name__ == "__main__":
     cv2.waitKey(0)
 
 
-    recognition_model = CRNNOpenCV(args.recognition_model_path)
-    # recognition_model = CRNNEasyOCR()
-    rec_text = recognition_image(recognition_model, image, vertices)
+    # recognition_model = CRNNOpenCV(args.recognition_model_path)
+    recognition_model = CRNNEasyOCR()
+    rec_text = recognition_model.recognize(image, vertices)
+
+    # rec_text = e2e_easyocr(args.image_path)
 
     print(rec_text)
