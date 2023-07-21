@@ -3,7 +3,7 @@ import argparse
 import easyocr
 
 from DetectionModel import DetectionModel, DBOpenCV, DBEasyOCR
-from RecognitionModel import RecognitionModel, CRNNOpenCV, CRNNEasyOCR
+from RecognitionModel import RecognitionModel, CRNNOpenCV, CRNNEasyOCR, TrOCR
 
 
 def detect_image(detection_model:DetectionModel, image):
@@ -39,7 +39,7 @@ def recognition_image(recognition_model:RecognitionModel, image, vertices = None
     '''
     rec_text = []
     for box in vertices:
-        cropped = CRNNOpenCV.fourPointsTransform(image, box)
+        cropped = RecognitionModel.fourPointsTransform(image, box)
         cv2.imshow("cropped", cropped)
         cv2.waitKey(0)
         text = recognition_model.recognize(cropped)
@@ -71,7 +71,8 @@ if __name__ == "__main__":
 
 
     # recognition_model = CRNNOpenCV(args.recognition_model_path)
-    recognition_model = CRNNEasyOCR()
+    # recognition_model = CRNNEasyOCR()
+    recognition_model = TrOCR()
     rec_text = recognition_model.recognize(image, vertices)
 
     # rec_text = e2e_easyocr(args.image_path)
