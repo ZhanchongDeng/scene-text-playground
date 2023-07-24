@@ -4,15 +4,16 @@ import easyocr
 import numpy as np
 import cv2
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+import torch
+import torchvision.transforms.functional as TF
 
 class RecognitionModel:
     def recognize(self, images, vertices):
         raise NotImplementedError
     
     @staticmethod
-    def fourPointsTransform(frame, vertices):
+    def fourPointsTransform(frame, vertices, outputSize = (100, 32)):
         vertices = np.asarray(vertices)
-        outputSize = (100, 32)
         targetVertices = np.array([
             [0, outputSize[1] - 1],
             [0, 0],
@@ -54,10 +55,14 @@ class CRNNOpenCV(RecognitionModel):
             rec_text:   Recognized text.
         '''
         rec_text = []
-        for box in vertices:
-            cropped = self.fourPointsTransform(image, box)
-            text = self.recognition_model.recognize(cropped)
+        if vertices == None:
+            text = self.recognition_model.recognize(image)
             rec_text.append(text)
+        else:
+            for box in vertices:
+                cropped = self.fourPointsTransform(image, box)
+                text = self.recognition_model.recognize(cropped)
+                rec_text.append(text)
         return rec_text
     
 class CRNNEasyOCR(RecognitionModel):
@@ -77,8 +82,8 @@ class CRNNEasyOCR(RecognitionModel):
 
 class TrOCR(RecognitionModel):
     def __init__(self):
-        self.processor = TrOCRProcessor.from_pretrained('microsoft/trocr-large-str')
-        self.model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-large-str')
+        self.processor = TrOCRProcessor.from_pretrained('microsoft/trocr-base-str')
+        self.model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-base-str')
         
     def recognize(self, image, vertices):
         rec_text = []
@@ -94,4 +99,35 @@ class TrOCR(RecognitionModel):
                 generated_ids = self.model.generate(pixel_values)
                 generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
                 rec_text.append(generated_text)
+        return rec_text
+    
+class Parseq(RecognitionModel):
+    def __init__(self):
+        # available models: abinet, crnn, trba, vitstr, parseq_tiny, and parseq.
+        self.model = torch.hub.load('baudm/parseq', 'parseq', pretrained = True).eval()
+        self.input_size = self.model.hparams.img_size
+    
+    def image_transform(self, image):
+        image = TF.to_tensor(image)
+        image = TF.resize(image, self.input_size)
+        image = TF.normalize(image, 0.5, 0.5)
+        image = image.unsqueeze(0)
+        return image
+
+    def recognize(self, image, vertices):
+        rec_text = []
+        if vertices == None:
+            image = self.image_transform(image)
+            logits = self.model(image)
+            pred = logits.softmax(-1)
+            label, confidence = self.model.tokenizer.decode(pred)
+            rec_text.append(label[0])
+        else:
+            for box in vertices:
+                image = RecognitionModel.fourPointsTransform(image, box, self.input_size)
+                image = self.image_transform(image)
+                logits = self.model(image)
+                pred = logits.softmax(-1)
+                label, confidence = self.model.tokenizer.decode(pred)
+                rec_text.append(label[0])
         return rec_text

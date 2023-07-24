@@ -4,6 +4,7 @@ __pycache__/
 easyocr_models/
 FAST/
 venv/
+parseq/
 
 *.txt
 *.onnx
