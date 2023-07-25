@@ -6,13 +6,14 @@ import cv2
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 import torch
 import torchvision.transforms.functional as TF
+import torchsummary
 
 class RecognitionModel:
     def recognize(self, images, vertices):
         raise NotImplementedError
     
     @staticmethod
-    def fourPointsTransform(frame, vertices, outputSize = (100, 32)):
+    def fourPointsTransform(frame, vertices, outputSize = [100, 32]):
         vertices = np.asarray(vertices)
         targetVertices = np.array([
             [0, outputSize[1] - 1],
@@ -105,11 +106,12 @@ class Parseq(RecognitionModel):
     def __init__(self):
         # available models: abinet, crnn, trba, vitstr, parseq_tiny, and parseq.
         self.model = torch.hub.load('baudm/parseq', 'parseq', pretrained = True).eval()
-        self.input_size = self.model.hparams.img_size
+        self.img_size = [1, 3, 32, 128]
     
     def image_transform(self, image):
+        # assume image is currently C x H x W
+        # get it to 1 x C x H x W
         image = TF.to_tensor(image)
-        image = TF.resize(image, self.input_size)
         image = TF.normalize(image, 0.5, 0.5)
         image = image.unsqueeze(0)
         return image
@@ -124,9 +126,9 @@ class Parseq(RecognitionModel):
             rec_text.append(label[0])
         else:
             for box in vertices:
-                image = RecognitionModel.fourPointsTransform(image, box, self.input_size)
-                image = self.image_transform(image)
-                logits = self.model(image)
+                cropped = self.fourPointsTransform(image, box, (128, 32))
+                cropped = self.image_transform(cropped)
+                logits = self.model(cropped)
                 pred = logits.softmax(-1)
                 label, confidence = self.model.tokenizer.decode(pred)
                 rec_text.append(label[0])

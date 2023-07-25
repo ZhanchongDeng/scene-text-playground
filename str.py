@@ -1,6 +1,8 @@
 import cv2
 import argparse
 import easyocr
+import pandas as pd
+import time
 
 from DetectionModel import DetectionModel, DBOpenCV, DBEasyOCR
 from RecognitionModel import RecognitionModel, CRNNOpenCV, CRNNEasyOCR, TrOCR, Parseq
@@ -36,12 +38,22 @@ if __name__ == "__main__":
     cv2.waitKey(0)
 
 
-    recognition_model = CRNNOpenCV(args.recognition_model_path)
+    # recognition_model = CRNNOpenCV(args.recognition_model_path)
     # recognition_model = CRNNEasyOCR()
     # recognition_model = TrOCR()
     # recognition_model = Parseq()
-    rec_text = recognition_model.recognize(image, vertices)
+    rec_models = [Parseq()]
+    result = []
+    for model in rec_models:
+        start_time = time.time()
+        rec_text = model.recognize(image, vertices)
+        inference_time = time.time() - start_time
+        result.append([model.__class__.__name__, rec_text, inference_time])
+
+    # format result to a csv
+    result = pd.DataFrame(result, columns=['Model', 'Text', 'Inference Time'])
+    result.to_csv('result.csv', index=False)
 
     # rec_text = e2e_easyocr(args.image_path)
 
-    print(rec_text)
+    print(result)
