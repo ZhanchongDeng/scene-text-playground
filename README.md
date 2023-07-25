@@ -21,7 +21,7 @@ Computer vision on scene text is typically divided into a 2-stage process.
 
 Detection reads an image containing one more many text body, and produce bounding box or segmentation mask for each text body detected.
 
-<figure><img src="../.gitbook/assets/Screenshot 2023-07-21 at 2.54.53 PM.png" alt=""><figcaption><p>Multiple detection box in green.</p></figcaption></figure>
+<figure><img src="images/text_detection_example.png" alt=""><figcaption><p>Multiple detection box in green.</p></figcaption></figure>
 
 ### Scene Text Recognition
 
