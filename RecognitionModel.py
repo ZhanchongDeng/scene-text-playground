@@ -85,6 +85,7 @@ class TrOCR(RecognitionModel):
     def __init__(self):
         self.processor = TrOCRProcessor.from_pretrained('microsoft/trocr-base-str')
         self.model = VisionEncoderDecoderModel.from_pretrained('microsoft/trocr-base-str')
+        self.input_size = [1, 3, 384, 384]
         
     def recognize(self, image, vertices):
         rec_text = []
@@ -95,23 +96,27 @@ class TrOCR(RecognitionModel):
             rec_text.append(generated_text)
         else:
             for box in vertices:
-                cropped = self.fourPointsTransform(image, box)
+                cropped = self.fourPointsTransform(image, box, self.input_size[2:4])
                 pixel_values = self.processor(images=cropped, return_tensors="pt").pixel_values
                 generated_ids = self.model.generate(pixel_values)
                 generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0]
                 rec_text.append(generated_text)
         return rec_text
     
+    
 class Parseq(RecognitionModel):
     def __init__(self):
         # available models: abinet, crnn, trba, vitstr, parseq_tiny, and parseq.
         self.model = torch.hub.load('baudm/parseq', 'parseq', pretrained = True).eval()
         self.img_size = [1, 3, 32, 128]
+        # torchsummary.summary(self.model, [3, 224, 224])
     
-    def image_transform(self, image):
+    @staticmethod
+    def image_transform(image, input_size):
         # assume image is currently C x H x W
         # get it to 1 x C x H x W
         image = TF.to_tensor(image)
+        image = TF.resize(image, input_size)
         image = TF.normalize(image, 0.5, 0.5)
         image = image.unsqueeze(0)
         return image
@@ -119,7 +124,7 @@ class Parseq(RecognitionModel):
     def recognize(self, image, vertices):
         rec_text = []
         if vertices == None:
-            image = self.image_transform(image)
+            image = self.image_transform(image, (32, 128))
             logits = self.model(image)
             pred = logits.softmax(-1)
             label, confidence = self.model.tokenizer.decode(pred)
@@ -127,7 +132,7 @@ class Parseq(RecognitionModel):
         else:
             for box in vertices:
                 cropped = self.fourPointsTransform(image, box, (128, 32))
-                cropped = self.image_transform(cropped)
+                cropped = self.image_transform(cropped, (32, 128))
                 logits = self.model(cropped)
                 pred = logits.softmax(-1)
                 label, confidence = self.model.tokenizer.decode(pred)
