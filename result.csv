@@ -1,2 +1,2 @@
 Model,Text,Inference Time
-Parseq,"['52542484', 'WILDLIFE', 'INJURED', '3km', 'NEXT']",0.20038604736328125
+Parseq,['REDWOOD'],0.04059004783630371

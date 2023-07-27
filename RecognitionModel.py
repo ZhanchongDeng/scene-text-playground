@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 from transformers import TrOCRProcessor, VisionEncoderDecoderModel
 import torch
-import torchvision.transforms.functional as TF
+from torchvision import transforms as T
 import torchsummary
 
 class RecognitionModel:
@@ -109,30 +109,27 @@ class Parseq(RecognitionModel):
         # available models: abinet, crnn, trba, vitstr, parseq_tiny, and parseq.
         self.model = torch.hub.load('baudm/parseq', 'parseq', pretrained = True).eval()
         self.img_size = [1, 3, 32, 128]
+        self.transform = T.Compose([
+            T.ToTensor(),
+            T.Resize((self.img_size[2:4]), T.InterpolationMode.BILINEAR),
+            # T.Normalize(0.5, 0.5),
+        ])
         # torchsummary.summary(self.model, [3, 224, 224])
-    
-    @staticmethod
-    def image_transform(image, input_size):
-        # assume image is currently C x H x W
-        # get it to 1 x C x H x W
-        image = TF.to_tensor(image)
-        image = TF.resize(image, input_size)
-        image = TF.normalize(image, 0.5, 0.5)
-        image = image.unsqueeze(0)
-        return image
 
     def recognize(self, image, vertices):
         rec_text = []
         if vertices == None:
-            image = self.image_transform(image, (32, 128))
+            image = self.transform(image)
+            image = image.unsqueeze(0)
             logits = self.model(image)
             pred = logits.softmax(-1)
             label, confidence = self.model.tokenizer.decode(pred)
             rec_text.append(label[0])
         else:
             for box in vertices:
-                cropped = self.fourPointsTransform(image, box, (128, 32))
-                cropped = self.image_transform(cropped, (32, 128))
+                cropped = self.fourPointsTransform(image, box, self.image_size[2:4])
+                cropped = self.transform(cropped)
+                cropped = cropped.unsqueeze(0)
                 logits = self.model(cropped)
                 pred = logits.softmax(-1)
                 label, confidence = self.model.tokenizer.decode(pred)
