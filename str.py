@@ -7,13 +7,14 @@ import torch
 import torchvision.transforms.functional as TF
 from torchvision import transforms as T
 import numpy as np
+from pathlib import Path
 
 from DetectionModel import DetectionModel, DBOpenCV, DBEasyOCR
 from RecognitionModel import RecognitionModel, CRNNOpenCV, CRNNEasyOCR, TrOCR, Parseq
 
 def check_input_size(model_name):
     import onnxruntime as ort
-    model = ort.InferenceSession(model_name, providers=['CUDAExecutionProvider', 'CPUExecutionProvider'])
+    model = ort.InferenceSession(model_name, providers=['CPUExecutionProvider'])
     input_shape = model.get_inputs()[0].shape
     return input_shape
 
@@ -103,8 +104,14 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
-
+    # main()
+    model_dir = Path("saved_models")
+    for file in model_dir.iterdir():
+        # check all onnx
+        if file.suffix == ".onnx":
+            print(file)
+            print(check_input_size(file))
+    
     # model = torch.hub.load('baudm/parseq', 'parseq', pretrained=True).eval()
     # model.load_state_dict(torch.load('saved_models/parseq.pt', map_location=torch.device('cpu')))
     # model = torch.jit.load('saved_models/parseq-small-ts.bin')

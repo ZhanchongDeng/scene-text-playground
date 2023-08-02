@@ -10,3 +10,9 @@ saved_models/
 *.txt
 *.onnx
 *.code-workspace
+log-*
+error-*
+onnx-tensorflow/
+*.bin
+saved_model/
+parseq-tiny-tensorflow/
