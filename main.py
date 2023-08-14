@@ -104,13 +104,13 @@ def main():
 
 
 if __name__ == "__main__":
-    # main()
-    model_dir = Path("saved_models")
-    for file in model_dir.iterdir():
-        # check all onnx
-        if file.suffix == ".onnx":
-            print(file)
-            print(check_input_size(file))
+    main()
+    # model_dir = Path("saved_models")
+    # for file in model_dir.iterdir():
+    #     # check all onnx
+    #     if file.suffix == ".onnx":
+    #         print(file)
+    #         print(check_input_size(file))
     
     # model = torch.hub.load('baudm/parseq', 'parseq', pretrained=True).eval()
     # model.load_state_dict(torch.load('saved_models/parseq.pt', map_location=torch.device('cpu')))

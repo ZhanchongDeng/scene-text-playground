@@ -4,15 +4,5 @@ __pycache__/
 easyocr_models/
 FAST/
 venv/
-parseq/
-saved_models/
-
 *.txt
-*.onnx
-*.code-workspace
-log-*
-error-*
-onnx-tensorflow/
-*.bin
-saved_model/
-parseq-tiny-tensorflow/
+str_playground.code-workspace

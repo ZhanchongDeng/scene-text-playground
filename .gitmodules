@@ -1,0 +1,3 @@
+[submodule "parseq"]
+	path = parseq
+	url = https://github.com/baudm/parseq.git
